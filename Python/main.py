@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from datetime import datetime,timedelta
+import pathlib, os
+
 
 from past_features import *
 from elo_features import *
@@ -20,6 +22,7 @@ from utilities import *
 
 import glob
 filenames=list(glob.glob("../Data/20*.xls*"))
+# TODO: it is not finding files
 l = [pd.read_excel(filename,encoding='latin-1') for filename in filenames]
 no_b365=[i for i,d in enumerate(l) if "B365W" not in l[i].columns]
 no_pi=[i for i,d in enumerate(l) if "PSW" not in l[i].columns]
@@ -51,7 +54,11 @@ elo_rankings = compute_elo_rankings(data)
 data = pd.concat([data,elo_rankings],1)
 
 ### Storage of the raw dataset
-data.to_csv("../Generated Data/atp_data.csv",index=False)
+import pathlib, os
+# mkdir if not exists
+if not os.path.exists("../Generated Data"):
+    pathlib.Path("../Generated Data").mkdir(parents=True, exist_ok=True)
+data.to_csv("../Generated Data/atp_data.csv",index=False, mode='w+')
 
 
 
@@ -61,12 +68,12 @@ data.to_csv("../Generated Data/atp_data.csv",index=False)
 ### We'll add some features to the dataset
 
 data=pd.read_csv("../Generated Data/atp_data.csv")
-data.Date = data.Date.apply(lambda x:datetime.strptime(x, '%Y-%m-%d'))
+data.Date = data.Date.apply(lambda x:datetime.datetime.strptime(x, '%Y-%m-%d'))
 
 
 ######################### The period that interests us #########################
 
-beg = datetime(2008,1,1) 
+beg = datetime.datetime(2008,1,1)
 end = data.Date.iloc[-1]
 indices = data[(data.Date>beg)&(data.Date<=end)].index
 
@@ -76,14 +83,14 @@ features_player  = features_past_generation(features_player_creation,5,"playerft
 features_duo     = features_past_generation(features_duo_creation,150,"duoft",data,indices)
 features_general = features_past_generation(features_general_creation,150,"generalft",data,indices)
 features_recent  = features_past_generation(features_recent_creation,150,"recentft",data,indices)
-#dump(player_features,"player_features")
-#dump(duo_features,"duo_features")
-#dump(general_features,"general_features")
-#dump(recent_features,"recent_features")
-features_player=load("player_features")
-features_duo=load("duo_features")
-features_general=load("general_features")
-features_recent=load("recent_features")
+dump(features_player,"../Generated Data/player_features")
+dump(features_duo,"../Generated Data/duo_features")
+dump(features_general,"../Generated Data/general_features")
+dump(features_recent,"../Generated Data/recent_features")
+features_player=load("../Generated Data/player_features")
+features_duo=load("../Generated Data/duo_features")
+features_general=load("../Generated Data/general_features")
+features_recent=load("../Generated Data/recent_features")
 
 ########################### Selection of our period ############################
 
@@ -148,7 +155,7 @@ features.to_csv("../Generated Data/atp_data_features.csv",index=False)
 ######################### Confidence computing for each match ############################
 features=pd.read_csv("../Generated Data/atp_data_features.csv")
 
-start_date=datetime(2013,1,1) #first day of testing set
+start_date=datetime.datetime(2013,1,1) #first day of testing set
 test_beginning_match=data[data.Date==start_date].index[0] #id of the first match of the testing set
 span_matches=len(data)-test_beginning_match+1
 duration_val_matches=300
